@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UPSA ITM — Academic Counseling System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!--  LOGIN / REGISTER SCREEN                            -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div id="login-screen" class="screen active">
+    <div class="login-bg-orb orb-top"></div>
+    <div class="login-bg-orb orb-bottom"></div>
+
+    <div class="login-card">
+      <!-- Logo -->
+      <div class="login-logo-wrap">
+        <div class="login-logo">U</div>
+        <h1 class="login-title">UPSA ITM Portal</h1>
+        <p class="login-subtitle">Academic Counseling System</p>
+      </div>
+
+      <!-- Auth Mode Toggle (Sign In / Register) -->
+      <div class="auth-mode-toggle">
+        <button class="auth-mode-btn active" data-mode="login">Sign In</button>
+        <button class="auth-mode-btn" data-mode="register">Register</button>
+      </div>
+
+      <!-- Role Toggle -->
+      <div class="role-toggle">
+        <button class="role-btn active" data-role="student">Student</button>
+        <button class="role-btn" data-role="lecturer">Lecturer</button>
+      </div>
+
+      <!-- Register-only fields -->
+      <div id="register-only-fields" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="reg-name" class="form-input" placeholder="e.g. Kwame Mensah" />
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label" id="email-label">Student Email</label>
+        <input type="email" id="login-email" class="form-input" placeholder="10299860@upsamail.edu.gh" />
+        <small class="form-hint" id="email-hint">Student: 8-digit ID · Lecturer: firstname.lastname</small>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="login-password" class="form-input" placeholder="••••••••" />
+      </div>
+
+      <!-- Student-only: Level + Semester -->
+      <div id="student-fields">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Level</label>
+            <select id="login-level" class="form-select">
+              <option value="100">Level 100</option>
+              <option value="200" selected>Level 200</option>
+              <option value="300">Level 300</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Semester</label>
+            <select id="login-semester" class="form-select">
+              <option value="1" selected>Semester 1</option>
+              <option value="2">Semester 2</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <p id="login-error" class="login-error"></p>
+      <button class="btn-primary btn-full" id="auth-submit-btn">Sign In</button>
+
+      <p class="login-hint">
+        Only <strong style="color:rgba(197,161,0,0.9)">@upsamail.edu.gh</strong> institutional emails accepted.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!--  APP SCREEN                                         -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div id="app-screen" class="screen">
+
+    <header id="app-header">
+      <div class="header-brand">
+        <div class="header-logo">U</div>
+        <div>
+          <div class="header-name">UPSA ITM</div>
+          <div class="header-tagline">Academic Assistant</div>
+        </div>
+      </div>
+
+      <nav id="header-nav"></nav>
+
+      <div class="header-user-wrap">
+        <div>
+          <div class="header-user-name" id="header-user-name">—</div>
+          <div class="header-user-role" id="header-user-role">—</div>
+        </div>
+        <button id="logout-btn" class="btn-logout">Logout</button>
+      </div>
+    </header>
+
+    <main id="app-main"></main>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!--  SHARED MODAL                                       -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" id="modal-box">
+      <h3 class="modal-title" id="modal-title">—</h3>
+      <div id="modal-body"></div>
+      <div class="modal-actions" id="modal-actions">
+        <button class="btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button class="btn-primary"   id="modal-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!--  Scripts — ORDER MATTERS:                           -->
+  <!--  api.js must load before push.js (uses apiFetch)   -->
+  <!--  ui.js must load before tabs.js (uses el, $, etc.) -->
+  <!--  tabs.js must load before app.js (uses build fns)  -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <script src="js/api.js"></script>
+  <script src="js/push.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/tabs.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
