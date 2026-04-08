@@ -191,51 +191,51 @@ const AppPushManager = (() => {
     if (!bell) return;
     if (subscribed) {
       bell.textContent = "🔔";
-      bell.title       = "Notifications ON — click to disable";
+      bell.title       = "Notifications ON — alerts go to your device notification bar. Click to disable.";
       bell.classList.add("bell-active");
     } else {
       bell.textContent = "🔕";
-      bell.title       = "Enable push notifications";
+      bell.title       = "Click to enable push notifications — alerts will appear in your device notification bar";
       bell.classList.remove("bell-active");
     }
   }
 
   /**
-   * Inject the bell button into the app header.
-   * Called from app.js after successful login (students only).
+   * silentInit — production-ready push setup.
+   * Called for both students AND lecturers immediately after login.
+   * No bell button, no test button — just registers SW, fetches VAPID,
+   * and prompts the browser permission dialog once. If the user has
+   * already granted or denied, no dialog is shown again.
    */
-  async function injectBellButton() {
-    if (!isSupported() || !_vapidPublicKey) return;
+  async function silentInit() {
+    if (!isSupported()) return false;
+    const ok = await init();         // register SW + fetch VAPID key
+    if (!ok || !_vapidPublicKey) return false;
 
-    const wrap = document.querySelector(".header-user-wrap");
-    if (!wrap || document.getElementById("push-bell-btn")) return;
+    // Re-use existing subscription if already granted
+    const already = await isSubscribed();
+    if (already) return true;
 
-    const btn = document.createElement("button");
-    btn.id          = "push-bell-btn";
-    btn.className   = "push-bell-btn";
-    btn.textContent = "🔕";
-    btn.title       = "Enable push notifications";
-    btn.addEventListener("click", toggle);
-
-    // Insert before Logout button
-    const logoutBtn = document.getElementById("logout-btn");
-    wrap.insertBefore(btn, logoutBtn);
-
-    // Sync with actual browser subscription state
-    const subscribed = await isSubscribed();
-    _updateBellUI(subscribed);
+    // Only prompt if Notification.permission is "default" (not yet decided)
+    if (Notification.permission === "default") {
+      await requestAndSubscribe();   // shows browser permission dialog once
+    } else if (Notification.permission === "granted") {
+      await requestAndSubscribe();   // granted but not yet subscribed — subscribe silently
+    }
+    // If "denied", do nothing — respect the user's choice
+    return true;
   }
 
   /* ── Public API ───────────────────────────────────────── */
   return {
     init,
+    silentInit,
     requestAndSubscribe,
     unsubscribe,
     toggle,
     isSubscribed,
     isSupported,
     sendTest,
-    injectBellButton,
   };
 
 })();

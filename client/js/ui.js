@@ -79,7 +79,90 @@ function switchTab(tabId) {
 
 
 /* ─── Chat Bubble ───────────────────────────────────────── */
-function buildBubble({ role, content, confidence, motivation }) {
+/* ─── Markdown Renderer ────────────────────────────────────
+   Converts the bot's markdown-style responses into clean HTML.
+   Handles: fenced code blocks, inline code, bold, italic,
+   bullet lists, numbered lists, tables, headers, blockquotes.
+   ────────────────────────────────────────────────────────── */
+function _renderMarkdown(text) {
+  if (!text) return "";
+  let html = text;
+
+  // 1. Fenced code blocks  ```lang\n...\n```
+  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const langName  = lang ? lang.toUpperCase() : "CODE";
+    const escaped   = code
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .trimEnd();
+    return `<div class="code-block-wrap">` +
+      `<div class="code-lang">` +
+        `<span class="code-lang-name">${langName}</span>` +
+        `<span class="code-lang-badge">Code Example</span>` +
+      `</div>` +
+      `<pre class="code-block"><code>${escaped}</code></pre>` +
+    `</div>`;
+  });
+
+  // 2. Inline code  `code`
+  html = html.replace(/`([^`\n]+)`/g, '<code class="inline-code">$1</code>');
+
+  // 3. Headers  ### ## #
+  html = html.replace(/^### (.+)$/gm, '<h4 class="md-h4">$1</h4>');
+  html = html.replace(/^## (.+)$/gm,  '<h3 class="md-h3">$1</h3>');
+  html = html.replace(/^# (.+)$/gm,   '<h2 class="md-h2">$1</h2>');
+
+  // 4. Bold  **text**
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  // 5. Italic  *text* or _text_
+  html = html.replace(/(?<![*])\*([^*\n]+)\*(?![*])/g, '<em>$1</em>');
+  html = html.replace(/\_([^_\n]+)\_/g, '<em>$1</em>');
+
+  // 6. Tables  | col | col |
+  html = html.replace(/((?:\|.+\|\n?)+)/g, (tableBlock) => {
+    const rows = tableBlock.trim().split("\n").filter(r => r.trim().startsWith("|"));
+    if (rows.length < 2) return tableBlock;
+    let out = '<div class="md-table-wrap"><table class="md-table">';
+    rows.forEach((row, idx) => {
+      if (/^\|[-| :]+\|$/.test(row.trim())) return; // skip separator
+      const cells = row.split("|").filter((_, i, a) => i > 0 && i < a.length - 1);
+      const tag   = idx === 0 ? "th" : "td";
+      out += "<tr>" + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join("") + "</tr>";
+    });
+    out += "</table></div>";
+    return out;
+  });
+
+  // 7. Unordered lists  - item or • item
+  html = html.replace(/^[\-•] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/gs, m => `<ul class="md-ul">${m}</ul>`);
+
+  // 8. Numbered lists  1. item
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+  // 9. Horizontal rule ---
+  html = html.replace(/^---+$/gm, '<hr class="md-hr">');
+
+  // 10. Blockquote  > text
+  html = html.replace(/^> (.+)$/gm, '<blockquote class="md-blockquote">$1</blockquote>');
+
+  // 11. Line breaks — double newline → paragraph break, single → <br>
+  html = html.replace(/\n\n/g, '</p><p class="md-p">');
+  html = html.replace(/\n(?!<)/g, '<br>');
+  html = `<p class="md-p">${html}</p>`;
+
+  // 12. Clean up empty paragraphs
+  html = html.replace(/<p class="md-p"><\/p>/g, "");
+  html = html.replace(/<p class="md-p">(<(?:ul|ol|table|div|h[2-4]|hr|blockquote))/g, "$1");
+  html = html.replace(/(<\/(?:ul|ol|table|div|h[2-4]|hr|blockquote)>)<\/p>/g, "$1");
+
+  return html;
+}
+
+function buildBubble(msg) {
+  const { role, content } = msg;
   const isUser = role === "user";
   const row    = el("div", { class: `bubble-row${isUser ? " user" : ""}` });
 
@@ -87,26 +170,53 @@ function buildBubble({ role, content, confidence, motivation }) {
     row.appendChild(el("div", { class: "bubble-avatar", text: "A" }));
   }
 
-  const wrap = el("div", { class: "bubble-content" });
-  wrap.appendChild(el("div", { class: `bubble ${isUser ? "user" : "assistant"}`, text: content }));
+  const wrap   = el("div", { class: "bubble-content" });
+  const bubble = el("div", { class: `bubble ${isUser ? "user" : "assistant"}` });
 
-  // Confidence bar (assistant only)
-  if (!isUser && confidence !== undefined) {
-    const pct = Math.min(Math.round(confidence), 100);
-    const cls = pct >= 65 ? "conf-high" : pct >= 40 ? "conf-mid" : "conf-low";
-    const barWrap = el("div", { class: "confidence-bar-wrap" });
-    const track   = el("div", { class: "confidence-track" });
-    const fill    = el("div", { class: `confidence-fill ${cls}` });
-    fill.style.width = `${pct}%`;
-    track.appendChild(fill);
-    barWrap.appendChild(track);
-    barWrap.appendChild(el("span", { class: "confidence-label", text: `${pct}% confidence` }));
-    wrap.appendChild(barWrap);
+  if (isUser) {
+    bubble.textContent = content;   // user messages — plain text, no markdown
+  } else {
+    bubble.innerHTML = _renderMarkdown(content);  // bot messages — full markdown
+    // Reading progress bar for long responses (> 400 chars)
+    if (content && content.length > 400) {
+      const progressBar = document.createElement("div");
+      progressBar.className = "read-progress-wrap";
+      const progressFill = document.createElement("div");
+      progressFill.className = "read-progress-fill";
+      progressBar.appendChild(progressFill);
+      wrap.appendChild(progressBar);
+      wrap.appendChild(bubble);
+      // Track scroll position in the chat to update progress
+      requestAnimationFrame(() => {
+        const msgs = document.getElementById("chat-messages");
+        if (!msgs) return;
+        const updateProgress = () => {
+          const bTop    = bubble.getBoundingClientRect().top;
+          const bBot    = bubble.getBoundingClientRect().bottom;
+          const winH    = window.innerHeight;
+          const total   = bBot - bTop;
+          const seen    = Math.min(winH, Math.max(0, winH - bTop));
+          const pct     = total > 0 ? Math.min(100, Math.round((seen / total) * 100)) : 0;
+          progressFill.style.width = pct + "%";
+          if (pct >= 100) {
+            progressBar.classList.add("read-done");
+          }
+        };
+        msgs.addEventListener("scroll", updateProgress, { passive: true });
+        updateProgress();
+      });
+    }
   }
 
-  // Motivational card (assistant only)
-  if (motivation) {
-    wrap.appendChild(el("div", { class: "motivation-card", text: `💡 ${motivation}` }));
+  wrap.appendChild(bubble);
+
+  // Resource recommendation (if knowledge base entry has a link)
+  if (!isUser && msg.resource_url) {
+    const resRow = el("div", { class: "resource-recommend-row" });
+    resRow.innerHTML = `<span class="resource-icon">📎</span>` +
+      `<span class="resource-label">Recommended: </span>` +
+      `<a class="resource-link" href="${msg.resource_url}" target="_blank" rel="noopener">${msg.resource_url}</a>`;
+    wrap.appendChild(resRow);
   }
 
   row.appendChild(wrap);

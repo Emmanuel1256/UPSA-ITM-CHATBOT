@@ -58,6 +58,7 @@ def create():
     keywords      = (data.get("keywords")      or "").strip()
     response_text = (data.get("response_text") or "").strip()
     level         = (data.get("level")         or "all").strip()
+    resource_url  = (data.get("resource_url")  or "").strip() or None
 
     if not intent_name:
         return jsonify({"error": "Intent name is required."}), 400
@@ -78,6 +79,7 @@ def create():
         keywords=keywords,
         response_text=response_text,
         level=level,
+        resource_url=resource_url,
         created_by=user.id,
     )
     db.session.add(item)
@@ -119,6 +121,9 @@ def update(item_id):
         if data["level"] not in VALID_LEVELS:
             return jsonify({"error": "Invalid level."}), 400
         item.level = data["level"]
+
+    if "resource_url" in data:
+        item.resource_url = (data["resource_url"] or "").strip() or None
 
     db.session.commit()
     return jsonify({"message": "Intent updated.", "item": item.to_dict()}), 200

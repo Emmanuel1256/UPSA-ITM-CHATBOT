@@ -19,6 +19,7 @@ class User(db.Model):
     level         = db.Column(db.String(10),  nullable=True)
     semester      = db.Column(db.String(5),   nullable=True)
     created_at    = db.Column(db.DateTime,    default=datetime.utcnow)
+    last_login    = db.Column(db.DateTime,    nullable=True)  # track inactivity
 
     messages = db.relationship(
         "ChatMessage", backref="user", lazy=True, cascade="all, delete-orphan"
@@ -70,6 +71,7 @@ class KnowledgeBase(db.Model):
     response_text = db.Column(db.Text,         nullable=False)
     level         = db.Column(db.String(10),   default="all")
     created_by    = db.Column(db.Integer,      db.ForeignKey("users.id"), nullable=True)
+    resource_url  = db.Column(db.String(500), nullable=True)  # recommended link for this topic
     updated_at    = db.Column(db.DateTime,     default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
@@ -79,6 +81,7 @@ class KnowledgeBase(db.Model):
             "keywords":      [k.strip() for k in self.keywords.split(",") if k.strip()],
             "response_text": self.response_text,
             "level":         self.level,
+            "resource_url":  self.resource_url,
             "updated_at":    self.updated_at.isoformat() if self.updated_at else None,
         }
 

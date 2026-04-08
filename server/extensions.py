@@ -1,7 +1,8 @@
 # ═══════════════════════════════════════════════════════════
 # server/extensions.py
-# Flask extensions — initialized here, registered in app.py
-# Avoids circular import issues
+# Flask extensions — instantiated here, registered in app.py
+# Keeping them here prevents circular import issues between
+# app.py → routes → models → extensions
 # ═══════════════════════════════════════════════════════════
 
 from flask_sqlalchemy import SQLAlchemy

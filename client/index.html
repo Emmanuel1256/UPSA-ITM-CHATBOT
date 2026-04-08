@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UPSA ITM — Academic Counseling System</title>
+  <title>UPSA ITM — Academic Counseling Chatbot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -11,19 +11,60 @@
 </head>
 <body>
 
+  <!-- ════════════════════════════════════════════════════ -->  <!--  LANDING SCREEN — Role Selection                    -->  <!-- ════════════════════════════════════════════════════ -->  <div id="landing-screen" class="screen active">
+    <!-- Same campus background -->
+    <div class="login-bg-photo"></div>
+    <div class="login-bg-overlay"></div>
+
+    <!-- Landing card -->
+    <div class="landing-card">
+      <div class="landing-logo-wrap">
+        <div class="login-logo">
+          <img src="images/upsa-logo.jpeg" alt="UPSA Logo" style="width:90px;height:90px;object-fit:contain;" />
+        </div>
+        <h1 class="login-title">UPSA ITM Counseling System</h1>
+        <p class="login-subtitle">Department of Information Technology Studies</p>
+      </div>
+
+      <p class="landing-prompt">Who are you?</p>
+
+      <div class="landing-roles">
+        <button class="landing-role-btn" id="landing-student-btn">
+          <span class="landing-role-icon">🎓</span>
+          <span class="landing-role-label">Student</span>
+          <span class="landing-role-desc">Access counseling, strategies &amp; reminders</span>
+        </button>
+        <button class="landing-role-btn" id="landing-lecturer-btn">
+          <span class="landing-role-icon">👨‍🏫</span>
+          <span class="landing-role-label">Lecturer</span>
+          <span class="landing-role-desc">Manage knowledge base &amp; announcements</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ════════════════════════════════════════════════════ -->
   <!--  LOGIN / REGISTER SCREEN                            -->
   <!-- ════════════════════════════════════════════════════ -->
-  <div id="login-screen" class="screen active">
-    <div class="login-bg-orb orb-top"></div>
-    <div class="login-bg-orb orb-bottom"></div>
+  <div id="login-screen" class="screen">
+    <!-- Campus background image — fades in first -->
+    <div class="login-bg-photo"></div>
+    <!-- Dark overlay on top of photo -->
+    <div class="login-bg-overlay"></div>
 
+    <!-- Login card — slides up after background appears -->
     <div class="login-card">
+      <!-- Back button -->
+      <button class="login-back-btn" id="login-back-btn" title="Back to role selection">
+        &#8592; Back
+      </button>
       <!-- Logo -->
       <div class="login-logo-wrap">
-        <div class="login-logo">U</div>
-        <h1 class="login-title">UPSA ITM Portal</h1>
-        <p class="login-subtitle">Academic Counseling System</p>
+        <div class="login-logo">
+          <img src="images/upsa-logo.jpeg" alt="UPSA Logo" style="width:72px;height:72px;object-fit:contain;" />
+        </div>
+        <h1 class="login-title">Student Portal</h1>
+        <p class="login-subtitle">Sign in to access the ITM Academic Counseling System</p>
       </div>
 
       <!-- Auth Mode Toggle (Sign In / Register) -->
@@ -32,13 +73,9 @@
         <button class="auth-mode-btn" data-mode="register">Register</button>
       </div>
 
-      <!-- Role Toggle -->
-      <div class="role-toggle">
-        <button class="role-btn active" data-role="student">Student</button>
-        <button class="role-btn" data-role="lecturer">Lecturer</button>
-      </div>
+      <!-- Role is set by landing screen selection — no toggle needed here -->
 
-      <!-- Register-only fields -->
+      <!-- Register-only: Full Name -->
       <div id="register-only-fields" style="display:none;">
         <div class="form-group">
           <label class="form-label">Full Name</label>
@@ -46,17 +83,37 @@
         </div>
       </div>
 
-      <!-- Email -->
+      <!-- Email — label set by role on landing -->
       <div class="form-group">
         <label class="form-label" id="email-label">Student Email</label>
-        <input type="email" id="login-email" class="form-input" placeholder="10299860@upsamail.edu.gh" />
-        <small class="form-hint" id="email-hint">Student: 8-digit ID · Lecturer: firstname.lastname</small>
+        <input type="email" id="login-email" class="form-input" placeholder="" />
       </div>
 
       <!-- Password -->
       <div class="form-group">
         <label class="form-label">Password</label>
-        <input type="password" id="login-password" class="form-input" placeholder="••••••••" />
+        <div class="password-wrap">
+          <input type="password" id="login-password" class="form-input" placeholder="••••••••" />
+          <button type="button" class="pw-toggle-btn" id="pw-toggle-btn" title="Show/hide password" tabindex="-1">
+            <svg id="pw-eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg id="pw-eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Register-only: Confirm Password (appears AFTER password) -->
+      <div id="confirm-pw-group" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <div class="password-wrap">
+            <input type="password" id="reg-confirm-password" class="form-input" placeholder="••••••••" />
+            <button type="button" class="pw-toggle-btn" id="confirm-pw-toggle" title="Show/hide password" tabindex="-1">
+              <svg id="confirm-eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="confirm-eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <small id="pw-match-hint" style="font-size:11px;margin-top:4px;display:block;"></small>
+        </div>
       </div>
 
       <!-- Student-only: Level + Semester -->
@@ -83,9 +140,7 @@
       <p id="login-error" class="login-error"></p>
       <button class="btn-primary btn-full" id="auth-submit-btn">Sign In</button>
 
-      <p class="login-hint">
-        Only <strong style="color:rgba(197,161,0,0.9)">@upsamail.edu.gh</strong> institutional emails accepted.
-      </p>
+
     </div>
   </div>
 
@@ -97,14 +152,19 @@
 
     <header id="app-header">
       <div class="header-brand">
-        <div class="header-logo">U</div>
+        <div class="header-logo">
+          <img src="images/upsa-logo.jpeg" alt="UPSA Logo" style="width:36px;height:36px;object-fit:contain;" />
+        </div>
         <div>
-          <div class="header-name">UPSA ITM</div>
-          <div class="header-tagline">Academic Assistant</div>
+          <div class="header-name">UPSA ITM Counseling</div>
+          <div class="header-tagline">Academic Guidance System</div>
         </div>
       </div>
 
       <nav id="header-nav"></nav>
+
+      <!-- Dark/Light mode toggle -->
+      <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle dark/light mode">🌙</button>
 
       <div class="header-user-wrap">
         <div>

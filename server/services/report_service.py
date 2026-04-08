@@ -14,10 +14,28 @@ from server.models.models import ChatMessage, IntentLog, UnansweredQuery, User
 
 
 def get_analytics_data() -> dict:
-    """Aggregate all analytics data from the database and return as dict."""
+    """Aggregate all analytics data including impact metrics."""
 
     total            = ChatMessage.query.filter_by(role="user").count()
     unanswered_count = UnansweredQuery.query.count()
+    answered_count   = total - unanswered_count
+
+    # Response (answer) rate
+    response_rate = round((answered_count / total * 100), 1) if total > 0 else 0.0
+
+    # Unique students who have used the system
+    from server.models.models import KnowledgeBase
+    unique_students = (
+        db.session.query(func.count(func.distinct(ChatMessage.user_id)))
+        .filter(ChatMessage.role == "user")
+        .scalar() or 0
+    )
+
+    # Average messages per student
+    avg_per_student = round(total / unique_students, 1) if unique_students > 0 else 0.0
+
+    # Knowledge base size
+    kb_count = KnowledgeBase.query.count()
 
     # Top 7 intents by frequency
     top_intents_raw = (
@@ -50,19 +68,32 @@ def get_analytics_data() -> dict:
     )
     by_level = {r[0]: r[1] for r in level_raw}
 
+    # Most engaged level
+    most_engaged_level = max(by_level, key=by_level.get) if by_level else "N/A"
+
     # Latest 10 unanswered queries for display
     unanswered_list = [
         q.to_dict()
         for q in UnansweredQuery.query.order_by(UnansweredQuery.date.desc()).limit(10).all()
     ]
 
+    # Most asked topic
+    most_asked = top_intents[0]["intent"].replace("_", " ").title() if top_intents else "N/A"
+
     return {
-        "total_interactions": total,
-        "unanswered_count":   unanswered_count,
-        "top_intents":        top_intents,
-        "weekly_engagement":  weekly,
-        "by_level":           by_level,
-        "unanswered_list":    unanswered_list,
+        "total_interactions":   total,
+        "answered_count":       answered_count,
+        "unanswered_count":     unanswered_count,
+        "response_rate":        response_rate,
+        "unique_students":      unique_students,
+        "avg_per_student":      avg_per_student,
+        "kb_count":             kb_count,
+        "most_asked":           most_asked,
+        "most_engaged_level":   most_engaged_level,
+        "top_intents":          top_intents,
+        "weekly_engagement":    weekly,
+        "by_level":             by_level,
+        "unanswered_list":      unanswered_list,
     }
 
 
@@ -116,15 +147,55 @@ def generate_pdf(semester: str = "1", academic_year: str = "2024/25") -> bytes:
     elements.append(HRFlowable(width="100%", thickness=1, color=GOLD))
     elements.append(Spacer(1, 0.3 * cm))
 
-    # ── 1. Summary Statistics
-    elements.append(Paragraph("1. Summary Statistics", h2_style))
+    # ── 1. System Impact Summary
+    elements.append(Paragraph("1. System Impact Summary", h2_style))
+
+    impact_data = [
+        ["Impact Metric",                    "Value"],
+        ["Total Student Interactions",        str(data["total_interactions"])],
+        ["Successfully Answered Queries",     str(data["answered_count"])],
+        ["Unanswered / Flagged Queries",      str(data["unanswered_count"])],
+        ["Query Response Rate",               f"{data['response_rate']}%"],
+        ["Unique Students Served",            str(data["unique_students"])],
+        ["Avg. Interactions per Student",     str(data["avg_per_student"])],
+        ["Knowledge Base Intents Configured", str(data["kb_count"])],
+        ["Most Asked Topic",                  data["most_asked"]],
+        ["Most Engaged Level",                f"Level {data['most_engaged_level']}"],
+    ]
+    impact_table = Table(impact_data, colWidths=[10 * cm, 7 * cm])
+    impact_table.setStyle(TableStyle([
+        ("BACKGROUND",     (0, 0), (-1, 0),  NAVY),
+        ("TEXTCOLOR",      (0, 0), (-1, 0),  colors.white),
+        ("FONTNAME",       (0, 0), (-1, 0),  "Helvetica-Bold"),
+        ("FONTSIZE",       (0, 0), (-1, -1), 10),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, LIGHT]),
+        ("GRID",           (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
+        ("PADDING",        (0, 0), (-1, -1), 8),
+        # Highlight response rate row in gold if >= 70%
+        ("TEXTCOLOR",      (1, 4), (1, 4),
+         colors.HexColor("#15803d") if data["response_rate"] >= 70 else colors.HexColor("#b45309")),
+        ("FONTNAME",       (1, 4), (1, 4), "Helvetica-Bold"),
+    ]))
+    elements.append(impact_table)
+    elements.append(Spacer(1, 0.2 * cm))
+
+    # Impact interpretation paragraph
+    rate = data["response_rate"]
+    if rate >= 80:
+        interp = f"The system is performing <b>excellently</b>, answering {rate}% of all student queries. The Knowledge Base is well-configured and covering student needs effectively."
+    elif rate >= 60:
+        interp = f"The system is performing <b>adequately</b>, answering {rate}% of queries. Consider expanding the Knowledge Base to cover the flagged unanswered topics below."
+    else:
+        interp = f"The system answered {rate}% of queries. <b>Significant improvement</b> is possible by adding intents for the unanswered topics flagged below."
+    elements.append(Paragraph(interp, body_style))
+
+    # ── 2. Engagement by Level
+    elements.append(Paragraph("2. Engagement by Level", h2_style))
     stats_data = [
-        ["Metric",                     "Value"],
-        ["Total Student Interactions",  str(data["total_interactions"])],
-        ["Unanswered Queries",          str(data["unanswered_count"])],
-        ["Engagement — Level 100",      str(data["by_level"].get("100", 0))],
-        ["Engagement — Level 200",      str(data["by_level"].get("200", 0))],
-        ["Engagement — Level 300",      str(data["by_level"].get("300", 0))],
+        ["Metric",                "Value"],
+        ["Engagement — Level 100", str(data["by_level"].get("100", 0))],
+        ["Engagement — Level 200", str(data["by_level"].get("200", 0))],
+        ["Engagement — Level 300", str(data["by_level"].get("300", 0))],
     ]
     stats_table = Table(stats_data, colWidths=[10 * cm, 7 * cm])
     stats_table.setStyle(TableStyle([
@@ -139,7 +210,7 @@ def generate_pdf(semester: str = "1", academic_year: str = "2024/25") -> bytes:
     elements.append(stats_table)
 
     # ── 2. Top Intents
-    elements.append(Paragraph("2. Top 5 Query Intents", h2_style))
+    elements.append(Paragraph("3. Top 5 Query Intents", h2_style))
     if data["top_intents"]:
         intent_rows = [["Rank", "Intent", "Query Count"]]
         for i, item in enumerate(data["top_intents"][:5], 1):
@@ -165,7 +236,7 @@ def generate_pdf(semester: str = "1", academic_year: str = "2024/25") -> bytes:
         elements.append(Paragraph("No intent data recorded yet.", body_style))
 
     # ── 3. Unanswered Queries
-    elements.append(Paragraph("3. Unanswered / Flagged Queries", h2_style))
+    elements.append(Paragraph("4. Unanswered / Flagged Queries", h2_style))
     if data["unanswered_list"]:
         ua_rows = [["#", "Question", "Level", "Date"]]
         for i, q in enumerate(data["unanswered_list"], 1):

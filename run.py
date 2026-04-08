@@ -1,6 +1,6 @@
 # ═══════════════════════════════════════════════════════════
 # run.py — Application Entry Point
-# Run:  python run.py
+# Usage: python run.py
 # ═══════════════════════════════════════════════════════════
 
 from server.app import create_app
